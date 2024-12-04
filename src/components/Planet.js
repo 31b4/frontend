@@ -1,53 +1,78 @@
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere } from '@react-three/drei';
+import { useGLTF } from '@react-three/drei';
+
+const BASE_URL = process.env.PUBLIC_URL || '';
+
+// Base sizes of the 3D models (approximate diameters in their original scale)
+const MODEL_BASE_SIZES = {
+  Mercury: 1,
+  Venus: 1,
+  Earth: 1,
+  Mars: 1,
+  Jupiter: 10,
+  Saturn: 50,
+  Uranus: 1,
+  Neptune: 1,
+  Sun: 1
+};
 
 function Planet({ position, planetData }) {
   const meshRef = useRef();
-
-  // Forgás animáció
+  
+  const modelPath = planetData.name === 'Mars' ? 
+    '/models/mars.glb' : 
+    getPlanetModel(planetData.name);
+    
+  const { scene } = useGLTF(modelPath);
+  
   useFrame(() => {
     if (meshRef.current) {
-      meshRef.current.rotation.y += 0.01;
+      meshRef.current.rotation.y += 0.005;
     }
   });
 
-  // Debug log
-  console.log('Rendering planet:', planetData);
+  // Calculate normalized scale based on actual planet size vs model base size
+  const getNormalizedScale = () => {
+    const baseModelSize = MODEL_BASE_SIZES[planetData.name] || 1;
+    const scaleFactor = planetData.size / baseModelSize;
+    return scaleFactor * 0.000001; // Global scale factor to fit scene
+  };
 
-  // Módosított méretarány számítás
-  const scale = Math.max(0.5, planetData.size / 50000); // Minimum 0.5 egység méret
-
+  if (planetData.name === 'Sun') {
+    const sunScale = getNormalizedScale();
+    return (
+      <mesh position={[0, 0, 0]} scale={[sunScale, sunScale, sunScale]}>
+        <sphereGeometry args={[1, 32, 32]} />
+        <meshBasicMaterial color="#FFD700" />
+      </mesh>
+    );
+  }
+  
+  const scale = getNormalizedScale();
+  
   return (
-    <mesh
+    <primitive 
       ref={meshRef}
+      object={scene}
       position={position}
       scale={[scale, scale, scale]}
-    >
-      <Sphere args={[1, 32, 32]}>
-        <meshStandardMaterial 
-          color={getPlanetColor(planetData.name)}
-          roughness={0.7}
-          metalness={0.3}
-        />
-      </Sphere>
-    </mesh>
+    />
   );
 }
 
-// Segédfüggvény a bolygók színének meghatározásához
-function getPlanetColor(planetName) {
-  const colors = {
-    Mercury: '#A0522D',
-    Venus: '#DEB887',
-    Earth: '#4169E1',
-    Mars: '#CD5C5C',
-    Jupiter: '#DAA520',
-    Saturn: '#F4A460',
-    Uranus: '#87CEEB',
-    Neptune: '#1E90FF'
+function getPlanetModel(planetName) {
+  const models = {
+    Mercury: `${BASE_URL}/models/mercury.glb`,
+    Venus: `${BASE_URL}/models/venus.glb`,
+    Earth: `${BASE_URL}/models/earth.glb`,
+    Mars: `${BASE_URL}/models/mars.glb`,
+    Jupiter: `${BASE_URL}/models/jupiter.glb`,
+    Saturn: `${BASE_URL}/models/saturn.glb`,
+    Uranus: `${BASE_URL}/models/uranus.glb`,
+    Neptune: `${BASE_URL}/models/neptune.glb`
   };
-  return colors[planetName] || '#ffffff';
+  return models[planetName] || `${BASE_URL}/models/mars.glb`;
 }
 
 export default Planet; 
