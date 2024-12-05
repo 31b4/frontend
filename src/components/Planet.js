@@ -5,16 +5,16 @@ import { useGLTF } from '@react-three/drei';
 const BASE_URL = process.env.PUBLIC_URL || '';
 
 // Base sizes of the 3D models (approximate diameters in their original scale)
-const MODEL_BASE_SIZES = {
+export const MODEL_BASE_SIZES = {
   Mercury: 1,
   Venus: 1,
   Earth: 1,
   Mars: 1,
-  Jupiter: 10,
-  Saturn: 50,
+  Jupiter: 1,
+  Saturn: 0.1,
   Uranus: 1,
   Neptune: 1,
-  Sun: 1
+  Sun: 51
 };
 
 function Planet({ position, planetData }) {
@@ -35,6 +35,8 @@ function Planet({ position, planetData }) {
   // Calculate normalized scale based on actual planet size vs model base size
   const getNormalizedScale = () => {
     const baseModelSize = MODEL_BASE_SIZES[planetData.name] || 1;
+    return 0.001*baseModelSize * planetData.size
+
     const scaleFactor = planetData.size / baseModelSize;
     return scaleFactor * 0.000001; // Global scale factor to fit scene
   };

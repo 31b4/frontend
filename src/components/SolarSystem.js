@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import Planet from './Planet';
 import PlanetMenu from './PlanetMenu';
+import VisibilityControl from './VisibilityControl';
 
 // Camera controller component
 function CameraController({ targetPosition }) {
@@ -31,7 +32,7 @@ function CameraController({ targetPosition }) {
     zoomSpeed={0.6}
     panSpeed={0.5}
     rotateSpeed={0.4}
-    minDistance={1}
+    minDistance={0.2}
     maxDistance={1000}
   />;
 }
@@ -40,6 +41,7 @@ function SolarSystem() {
   const [planets, setPlanets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlanet, setSelectedPlanet] = useState(null);
+  const [enhancedVisibility, setEnhancedVisibility] = useState(true);
 
   useEffect(() => {
     fetch('http://localhost/space/space/public/api/planets')
@@ -58,12 +60,18 @@ function SolarSystem() {
   const handlePlanetSelect = (planet) => {
     if (planet) {
       const planetPosition = [
-        Math.cos(planets.indexOf(planet) * (Math.PI * 2) / planets.length) * planet.distance_from_sun * 0.1,
+        enhancedVisibility 
+        ? planet.distance_from_sun*0.001+(planet.name !== 'Sun' ? 70 : 0) // Shortened distance when enhanced
+        : planet.distance_from_sun,  // Real distance ratio
         0,
-        Math.sin(planets.indexOf(planet) * (Math.PI * 2) / planets.length) * planet.distance_from_sun * 0.1
+        0
       ];
       setSelectedPlanet(planetPosition);
     }
+  };
+
+  const handleVisibilityToggle = () => {
+    setEnhancedVisibility(!enhancedVisibility);
   };
 
   if (loading) {
@@ -73,12 +81,16 @@ function SolarSystem() {
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <PlanetMenu planets={planets} onSelectPlanet={handlePlanetSelect} />
+      <VisibilityControl 
+        isEnhanced={enhancedVisibility} 
+        onToggle={handleVisibilityToggle} 
+      />
       <Canvas 
         camera={{ 
           position: [0, 100, 200], 
           fov: 60,
           near: 0.1,
-          far: 10000  // Increased from default to see distant objects
+          far: 10000,
         }}
         style={{ background: '#000000' }}
       >
@@ -100,8 +112,10 @@ function SolarSystem() {
         
         <Stars 
           radius={508}
-          depth={70}
-          count={20000}
+          depth={0}
+          count={enhancedVisibility 
+            ? 20000
+            : 1}
           factor={7}
           saturation={0}
           fade={false}
@@ -110,15 +124,20 @@ function SolarSystem() {
         <CameraController targetPosition={selectedPlanet} />
         
         {planets && planets.length > 0 ? (
-          planets.map((planet, index) => (
+          planets.slice(0, 10).map((planet, index) => (
             <Planet 
               key={planet.id}
               position={[
-                Math.cos(index * (Math.PI * 2) / planets.length) * planet.distance_from_sun * 0.1,
+                enhancedVisibility 
+                  ? planet.distance_from_sun*0.001+(planet.name !== 'Sun' ? 70 : 0)  // Shortened distance when enhanced
+                  : planet.distance_from_sun,  // Real distance ratio
                 0,
-                Math.sin(index * (Math.PI * 2) / planets.length) * planet.distance_from_sun * 0.1
+                0
               ]}
-              planetData={planet}
+              planetData={{
+                ...planet,
+                size:enhancedVisibility ? planet.size * 10 : planet.size
+              }}
             />
           ))
         ) : (
